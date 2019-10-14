@@ -19,13 +19,13 @@ inline auto& deckIdGenerator()
     return generator_;
 }
 
-template <typename CardTraits, template <typename> class Cont = std::deque>
+template <typename CardTraits>
 class Deck {
 public:
     using SuitType = typename CardTraits::SuitType;
     using RankType = typename CardTraits::RankType;
     using CardType = Card<CardTraits>;
-    using ContainerType = Cont<CardType>;
+    using ContainerType = std::deque<CardType>;
     using SuitIterator = EnumIterator<SuitType, CardTraits::minSuit(), CardTraits::maxSuit()>;
     using RankIterator = EnumIterator<RankType, CardTraits::minRank(), CardTraits::maxRank()>;
 
@@ -48,11 +48,9 @@ public:
         }
     }
 
+    // Creates standard deck with each card taken once
     static Deck create() {
         Deck deck;
-        if constexpr (std::is_same_v<ContainerType, std::vector<CardType>>) {
-            deck.cards_.reserve(Deck::RADIX);
-        }
 
         for (auto suit : SuitIterator()) {
             for (auto rank : RankIterator()) {
@@ -105,10 +103,20 @@ public:
         return result;
     }
 
+    void putOnTop(CardType card)
+    {
+        cards_.push_back(std::move(card));
+    }
+
     template<typename T>
     void putOnTop(T cards)
     {
         std::move(cards.begin(), cards.end(), std::back_inserter(cards_));
+    }
+
+    void putOnBottom(CardType card)
+    {
+        cards_.push_front(std::move(card));
     }
 
     template<typename T>
@@ -128,7 +136,7 @@ private:
     std::mt19937 randGenerator_;
 };
 
-using Deck36 = Deck<Std36CardTraits, std::deque>;
+using Deck36 = Deck<Std36CardTraits>;
 
 
 } // namespace miplot::cards

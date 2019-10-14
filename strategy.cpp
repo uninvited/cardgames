@@ -76,7 +76,7 @@ Cards RandomStrategy::defend(const GameState& state, Cards& hand)
     std::vector<bool> used(hand.size(), false);
 
     for (const auto& attacking : state.undefendedCards()) {
-        auto id = getDefenderIdx(attacking, hand, used, state.trump());
+        auto id = getDefenderIdx(attacking, hand, used, state.trumpSuit());
         if (id == -1) {
             return result;
         } else {
@@ -100,7 +100,7 @@ Cards RandomStrategy::defend(const GameState& state, Cards& hand)
 int RandomStrategy::getDefenderIdx(const Card& attacker,
                                    const Cards& hand,
                                    const std::vector<bool>& used,
-                                   Suit trump) const
+                                   Suit trumpSuit) const
 {
     for (size_t i = 0; i < hand.size(); ++i) {
         if (used[i]) continue;
@@ -109,7 +109,7 @@ int RandomStrategy::getDefenderIdx(const Card& attacker,
         if (defender.suit() == attacker.suit() && defender.rank() > attacker.rank()) {
             return i;
         }
-        if (defender.suit() != attacker.suit() && defender.suit() == trump) {
+        if (defender.suit() != attacker.suit() && defender.suit() == trumpSuit) {
             return i;
         }
     }

@@ -33,7 +33,7 @@ public:
 
     const Opponents& opponents() const;
 
-    Suit trump() const;
+    Suit trumpSuit() const;
 
     // Indices in opponents() container
     size_t mainAttackerIdx() const;
@@ -62,7 +62,7 @@ public:
     size_t numPlayers() const { return players_.size(); }
 
     // Bottom card of the deck
-    Suit trump() const { return trump_; }
+    Suit trumpSuit() const { return trumpSuit_; }
 
     size_t mainAttackerIdx() const { return mainAttackerIdx_; }
     size_t curAttackerIdx() const {return curAttackerIdx_; }
@@ -119,7 +119,7 @@ private:
 private:
     Players players_;
 
-    Suit trump_;
+    Suit trumpSuit_;
 
     size_t mainAttackerIdx_;
     size_t curAttackerIdx_;

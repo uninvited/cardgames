@@ -38,9 +38,9 @@ const Opponents& GameState::opponents() const
     return opponents_;
 }
 
-Suit GameState::trump() const
+Suit GameState::trumpSuit() const
 {
-    return game_.trump();
+    return game_.trumpSuit();
 }
 
 size_t GameState::mainAttackerIdx() const
@@ -87,7 +87,7 @@ RoundResult Game::playRound(size_t firstAttackerIdx)
     deal(firstAttackerIdx);
     INFO() << "Playing a round";
     printDeck();
-    INFO() << "trump: " << trump_;
+    INFO() << "trump suit: " << trumpSuit_;
 
     BoutResult boutResult;
 
@@ -113,7 +113,9 @@ void Game::deal(size_t firstAttackerIdx)
     for (auto& player : players_) {
         player.assignHand(deck_.getFromTop(NUM_INITIAL_CARDS));
     }
-    trump_ = deck_.cards().front().suit();
+    auto card = deck_.getOneFromTop();
+    trumpSuit_ = card.suit();
+    deck_.putOnBottom(std::move(card));
 
     mainAttackerIdx_ = firstAttackerIdx;
     curAttackerIdx_ = firstAttackerIdx;
@@ -301,7 +303,7 @@ void Game::validateDefense(const Cards& cards, size_t initialNumCards) const
             REQUIRE(attacker.rank() < defender.rank(),
                     "Invalid defense of " << attacker << " by " << defender);
         } else {
-            REQUIRE(defender.suit() == trump_,
+            REQUIRE(defender.suit() == trumpSuit_,
                     "Invalid defense of " << attacker << " by " << defender);
         }
     }

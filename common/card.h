@@ -8,7 +8,7 @@ namespace miplot::cards {
 
 using DeckId = uint64_t;
 
-template <typename CardTraits, template <typename> class Cont>
+template <typename CardTraits>
 class Deck;
 
 /**
@@ -34,8 +34,7 @@ public:
     DeckId deckId() const { return deckId_; }
 
 private:
-    template<typename T, template <typename> class Cont>
-    friend class Deck;
+    template<typename T> friend class Deck;
 
     Card(Suit suit, Rank rank, DeckId deckId)
         : suit_(suit)
