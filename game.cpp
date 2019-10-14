@@ -90,11 +90,14 @@ RoundResult Game::playRound(size_t firstAttackerIdx)
     printDeck();
     INFO() << "trump: " << trump_;
 
-    // TODO make nicer
-    BoutResult boutResult = playBout();
+    BoutResult boutResult;
+    bool firstBout = true;
 
     while (!isFinished()) {
-        shiftTurn(boutResult);
+        if (!firstBout) {
+            shiftTurn(boutResult);
+        }
+        firstBout = false;
         boutResult = playBout();
         refill();
     }
@@ -127,6 +130,7 @@ BoutResult Game::playBout()
     size_t numFolds = 0;
 
     DEBUG() << "\nStart bout, player " << curAttackerIdx_ << " to attack";
+    printHands();
 
     while (numFolds < numPlayers() - 1
             && undefended_.size() < defender().numCards()
@@ -203,7 +207,7 @@ void Game::refill()
             i < numPlayers() && !deck_.isEmpty();
             ++i, idx = nextPlayerIdx(idx))
     {
-        Player& player = players_[i];
+        Player& player = players_[idx];
         if (player.numCards() >= NUM_INITIAL_CARDS) {
             continue;
         }
@@ -237,6 +241,10 @@ void Game::cleanup()
 
 void Game::validateAttack(const Cards& cards) const
 {
+     REQUIRE(std::all_of(cards.begin(), cards.end(),
+                [&](const Card& c){ return c.deckId() == deck_.deckId(); }),
+            "Card from a wrong deck");
+
     if (defended_.empty() && undefended_.empty()) {
         // Initial attack
         REQUIRE(!cards.empty(), "Empty attack");
@@ -273,6 +281,10 @@ void Game::validateDefense(const Cards& cards) const
 {
     if (cards.empty())
         return;
+
+    REQUIRE(std::all_of(cards.begin(), cards.end(),
+                [&](const Card& c){ return c.deckId() == deck_.deckId(); }),
+            "Card from a wrong deck");
 
     REQUIRE(cards.size() == undefended_.size(),
             "Don't have enough cards to defend");

@@ -2,6 +2,7 @@
 
 #include "card.h"
 #include "enum_iterator.h"
+#include "id_generator.h"
 #include "../exception.h"
 
 #include <deque>
@@ -11,6 +12,12 @@
 #include <vector>
 
 namespace miplot::cards {
+
+inline auto& deckIdGenerator()
+{
+    static IdGenerator<DeckId> generator_{0};
+    return generator_;
+}
 
 template <typename CardTraits, template <typename> class Cont = std::deque>
 class Deck {
@@ -25,7 +32,9 @@ public:
     static constexpr size_t RADIX = CardTraits::radix();
 
     // Creates an empty deck
-    Deck() : randGenerator_(std::random_device{}())
+    Deck()
+        : deckId_(deckIdGenerator().nextId())
+        , randGenerator_(std::random_device{}())
     {
     }
 
@@ -37,11 +46,13 @@ public:
 
         for (auto suit : SuitIterator()) {
             for (auto rank : RankIterator()) {
-                deck.cards_.push_back(CardType(suit, rank));
+                deck.cards_.push_back(CardType(suit, rank, deck.deckId()));
             }
         }
         return deck;
     }
+
+    DeckId deckId() const { return deckId_; }
 
     const ContainerType& cards() const { return cards_; }
 
@@ -103,6 +114,7 @@ public:
 
 private:
     ContainerType cards_;
+    DeckId deckId_;
     std::mt19937 randGenerator_;
 };
 
