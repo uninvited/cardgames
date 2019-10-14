@@ -30,7 +30,6 @@ GameState::GameState(const Game& game)
 
 const Opponents& GameState::opponents() const
 {
-    // todo: more clever sync?
     const auto& players = game_.players();
     for (size_t idx = 0; idx < players.size(); ++idx) {
         opponents_[idx].numCards = players[idx].numCards();
@@ -91,15 +90,15 @@ RoundResult Game::playRound(size_t firstAttackerIdx)
     INFO() << "trump: " << trump_;
 
     BoutResult boutResult;
-    bool firstBout = true;
 
     while (!isFinished()) {
-        if (!firstBout) {
-            shiftTurn(boutResult);
-        }
-        firstBout = false;
         boutResult = playBout();
         refill();
+
+        if (!isFinished()) {
+            shiftTurn(boutResult);
+        }
+
     }
 
     RoundResult result = getRoundResult();
@@ -112,8 +111,7 @@ void Game::deal(size_t firstAttackerIdx)
 {
     deck_.shuffle();
     for (auto& player : players_) {
-        player.assignHand(
-            deck_.getFromTop(NUM_INITIAL_CARDS));
+        player.assignHand(deck_.getFromTop(NUM_INITIAL_CARDS));
     }
     trump_ = deck_.cards().front().suit();
 
@@ -129,7 +127,7 @@ BoutResult Game::playBout()
     bool resign = false;
     size_t numFolds = 0;
 
-    DEBUG() << "\nStart bout, player " << curAttackerIdx_ << " to attack";
+    DEBUG() << "Start bout, player " << curAttackerIdx_ << " to attack";
     printHands();
 
     while (numFolds < numPlayers() - 1
@@ -138,9 +136,10 @@ BoutResult Game::playBout()
     {
         // attack
         Cards attack;
-        if (curAttacker().numCards()) {
+        size_t numCards = curAttacker().numCards();
+        if (numCards > 0) {
             attack = curAttacker().attack(*state_);
-            validateAttack(attack);
+            validateAttack(attack, numCards);
         }
         if (attack.empty()) {
             DEBUG() << "Player " << curAttackerIdx_ << " folds";
@@ -155,6 +154,7 @@ BoutResult Game::playBout()
 
         // defend
         if (!resign) {
+            numCards = defender().numCards();
             auto defense = defender().defend(*state_);
 
             if (defense.empty()) {
@@ -162,7 +162,7 @@ BoutResult Game::playBout()
                 resign = true;
             } else {
                 DEBUG() << "Player " << defenderIdx_ << " defense: " << join(defense);
-                validateDefense(defense);
+                validateDefense(defense, numCards);
                 for (size_t i = 0; i < defense.size(); ++i) {
                     defended_.push_back({std::move(undefended_[i]), std::move(defense[i])});
                 }
@@ -239,11 +239,13 @@ void Game::cleanup()
 }
 
 
-void Game::validateAttack(const Cards& cards) const
+void Game::validateAttack(const Cards& cards, size_t initialNumCards) const
 {
-     REQUIRE(std::all_of(cards.begin(), cards.end(),
+    REQUIRE(std::all_of(cards.begin(), cards.end(),
                 [&](const Card& c){ return c.deckId() == deck_.deckId(); }),
             "Card from a wrong deck");
+    REQUIRE(curAttacker().numCards() == initialNumCards - cards.size(),
+            "Wrong number of cards in attacker's hand");
 
     if (defended_.empty() && undefended_.empty()) {
         // Initial attack
@@ -277,7 +279,7 @@ void Game::validateAttack(const Cards& cards) const
             "Attacking with more than maximum allowed cards");
 }
 
-void Game::validateDefense(const Cards& cards) const
+void Game::validateDefense(const Cards& cards, size_t initialNumCards) const
 {
     if (cards.empty())
         return;
@@ -285,6 +287,8 @@ void Game::validateDefense(const Cards& cards) const
     REQUIRE(std::all_of(cards.begin(), cards.end(),
                 [&](const Card& c){ return c.deckId() == deck_.deckId(); }),
             "Card from a wrong deck");
+    REQUIRE(defender().numCards() == initialNumCards - cards.size(),
+            "Wrong number of cards in defender's hand");
 
     REQUIRE(cards.size() == undefended_.size(),
             "Don't have enough cards to defend");

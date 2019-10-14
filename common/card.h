@@ -20,6 +20,12 @@ public:
     using Suit = typename CardTraits::SuitType;
     using Rank = typename CardTraits::RankType;
 
+    Card(Suit suit, Rank rank)
+        : suit_(suit)
+        , rank_(rank)
+        , deckId_(0)
+    {}
+
     Card(Card&&) = default;
     Card& operator= (Card&&) = default;
 

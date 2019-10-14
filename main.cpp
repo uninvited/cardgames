@@ -11,20 +11,22 @@ using namespace miplot::cardgame::durak;
 
 int main() try
 {
-    log::setLogLevel(log::Level::Debug);
+    log::setLogger(log::toFile("durak.log"));
+    log::setLogLevel(log::Level::Info);
 
     Players players;
     players.emplace_back("Player 1", std::make_unique<RandomStrategy>());
     players.emplace_back("Player 2", std::make_unique<RandomStrategy>());
     Game game{std::move(players)};
 
-    auto result = game.playRound(0);
-    if (result.losingPlayerIdx) {
-        INFO() << "Player " << *result.losingPlayerIdx << " lost";
-    } else {
-        INFO() << "There was a draw";
+    for (int i = 0; i < 10; ++i) {
+        auto result = game.playRound(0);
+        if (result.losingPlayerIdx) {
+            INFO() << "Player " << *result.losingPlayerIdx << " lost";
+        } else {
+            INFO() << "There was a draw";
+        }
     }
-
     INFO() << "Done\n";
     // TODO Fix logging issue
     sleep(1);

@@ -38,6 +38,16 @@ public:
     {
     }
 
+    Deck(std::vector<CardType>&& cards)
+        : deckId_(deckIdGenerator().nextId())
+        , randGenerator_(std::random_device{}())
+    {
+        std::move(cards.begin(), cards.end(), std::back_inserter(cards_));
+        for (auto& card : cards_) {
+            card.deckId_ = deckId_;
+        }
+    }
+
     static Deck create() {
         Deck deck;
         if constexpr (std::is_same_v<ContainerType, std::vector<CardType>>) {

@@ -34,20 +34,21 @@ public:
     const Opponents& opponents() const;
 
     Suit trump() const;
+
+    // Indices in opponents() container
     size_t mainAttackerIdx() const;
     size_t defenderIdx() const;
     size_t curAttackerIdx() const;
 
+    // Cards on the table
     const Cards& undefendedCards() const;
     const CardPairs& defendedCards() const;
 
+    // Cards in discard heap
     const Cards& discard() const;
 
 private:
-    friend class Game;
-
     const Game& game_;
-
     mutable Opponents opponents_;
 };
 
@@ -92,8 +93,8 @@ private:
     void cleanup();
 
 
-    void validateAttack(const Cards& cards) const;
-    void validateDefense(const Cards& cards) const;
+    void validateAttack(const Cards& cards, size_t initialNumCards) const;
+    void validateDefense(const Cards& cards, size_t initialNumCards) const;
 
     size_t nextPlayerIdx(size_t playerIdx) const;
     size_t nextPlayerWithCardsIdx(size_t playerIdx) const;
