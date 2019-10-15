@@ -76,9 +76,10 @@ public:
     std::vector<CardType> getFromTop(size_t count)
     {
         REQUIRE(count <= size(), "Not enough cards");
-        std::vector<CardType> result(count);
+        std::vector<CardType> result;
+        result.reserve(count);
         auto till = cards_.begin() + count;
-        std::move(cards_.begin(), till, result.begin());
+        std::move(cards_.begin(), till, std::back_inserter(result));
         cards_.erase(cards_.begin(), till);
         return result;
     }

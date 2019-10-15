@@ -12,14 +12,14 @@ using namespace miplot::cardgame::durak;
 int main() try
 {
     log::setLogger(log::toFile("durak.log"));
-    log::setLogLevel(log::Level::Info);
+    log::setLogLevel(log::Level::Debug);
 
     Players players;
     players.emplace_back("Player 1", std::make_unique<RandomStrategy>());
     players.emplace_back("Player 2", std::make_unique<RandomStrategy>());
     Game game{std::move(players)};
 
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 1; ++i) {
         auto result = game.playRound(0);
         if (result.losingPlayerIdx) {
             INFO() << "Player " << *result.losingPlayerIdx << " lost";
