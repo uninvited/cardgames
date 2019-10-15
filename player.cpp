@@ -1,4 +1,5 @@
 #include "player.h"
+#include "exception.h"
 #include "strategy.h"
 
 namespace miplot::cardgame::durak {
@@ -44,6 +45,14 @@ void Player::addToHand(CardPairs&& pairs)
     }
 }
 
+Card Player::playCard(size_t cardIdx)
+{
+    REQUIRE(cardIdx < hand_.size(), "Card index outside hand range");
+    auto card = std::move(hand_[cardIdx]);
+    hand_.erase(hand_.begin() + cardIdx);
+    return card;
+}
+
 Cards Player::discardHand()
 {
     Cards cards = std::move(hand_);
@@ -51,12 +60,12 @@ Cards Player::discardHand()
     return cards;
 }
 
-Cards Player::attack(const GameState& state)
+int Player::attack(const GameState& state)
 {
     return strategy_->attack(state, hand_);
 }
 
-Cards Player::defend(const GameState& state)
+int Player::defend(const GameState& state)
 {
     return strategy_->defend(state, hand_);
 }

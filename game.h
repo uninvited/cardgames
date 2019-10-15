@@ -93,8 +93,8 @@ private:
     void cleanup();
 
 
-    void validateAttack(const Cards& cards, size_t initialNumCards) const;
-    void validateDefense(const Cards& cards, size_t initialNumCards) const;
+    void validateAttack(int cardIdx) const;
+    void validateDefense(int cardIdx) const;
 
     size_t nextPlayerIdx(size_t playerIdx) const;
     size_t nextPlayerWithCardsIdx(size_t playerIdx) const;

@@ -113,9 +113,8 @@ void Game::deal(size_t firstAttackerIdx)
     for (auto& player : players_) {
         player.assignHand(deck_.getFromTop(NUM_INITIAL_CARDS));
     }
-    auto card = deck_.getOneFromTop();
-    trumpSuit_ = card.suit();
-    deck_.putOnBottom(std::move(card));
+    trumpSuit_ = deck_.top().suit();
+    deck_.putOnBottom(deck_.getOneFromTop());
 
     mainAttackerIdx_ = firstAttackerIdx;
     curAttackerIdx_ = firstAttackerIdx;
@@ -137,40 +136,38 @@ BoutResult Game::playBout()
             && undefended_.size() + defended_.size() < NUM_INITIAL_CARDS)
     {
         // attack
-        Cards attack;
-        size_t numCards = curAttacker().numCards();
-        if (numCards > 0) {
-            attack = curAttacker().attack(*state_);
-            validateAttack(attack, numCards);
+        int attackIdx = -1;
+        if (curAttacker().numCards() > 0) {
+            attackIdx = curAttacker().attack(*state_);
+            validateAttack(attackIdx);
         }
-        if (attack.empty()) {
+        if (attackIdx == -1) {
             DEBUG() << "Player " << curAttackerIdx_ << " folds";
             ++numFolds;
             curAttackerIdx_= nextAttackerIdx(curAttackerIdx_);
             continue;
         } else {
-            DEBUG() << "Player " << curAttackerIdx_ << " attack: " << join(attack);
-            std::move(attack.begin(), attack.end(), std::back_inserter(undefended_));
+            DEBUG() << "Player " << curAttackerIdx_ << " attack: " << curAttacker().hand()[attackIdx];
+            undefended_.push_back(curAttacker().playCard(attackIdx));
             numFolds = 0;
         }
 
         // defend
         if (!resign) {
-            numCards = defender().numCards();
-            auto defense = defender().defend(*state_);
+            int defenseIdx = defender().defend(*state_);
 
-            if (defense.empty()) {
+            if (defenseIdx == -1) {
                 DEBUG() << "Player " << defenderIdx_ << " resigns";
                 resign = true;
             } else {
-                DEBUG() << "Player " << defenderIdx_ << " defense: " << join(defense);
-                validateDefense(defense, numCards);
-                for (size_t i = 0; i < defense.size(); ++i) {
-                    defended_.push_back({std::move(undefended_[i]), std::move(defense[i])});
-                }
+                validateDefense(defenseIdx);
+                DEBUG() << "Player " << defenderIdx_ << " defense: " << defender().hand()[defenseIdx];
+                defended_.push_back({std::move(undefended_[0]), defender().playCard(defenseIdx)});
                 undefended_.clear();
             }
         }
+
+        printTable();
     }
 
     if (resign) {
@@ -241,72 +238,52 @@ void Game::cleanup()
 }
 
 
-void Game::validateAttack(const Cards& cards, size_t initialNumCards) const
+void Game::validateAttack(int cardIdx) const
 {
-    REQUIRE(std::all_of(cards.begin(), cards.end(),
-                [&](const Card& c){ return c.deckId() == deck_.deckId(); }),
-            "Card from a wrong deck");
-    REQUIRE(curAttacker().numCards() == initialNumCards - cards.size(),
-            "Wrong number of cards in attacker's hand");
+    REQUIRE(cardIdx < (int)curAttacker().numCards(),
+            "Invalid attacking card index: " << cardIdx);
 
     if (defended_.empty() && undefended_.empty()) {
         // Initial attack
-        REQUIRE(!cards.empty(), "Empty attack");
-        REQUIRE(std::all_of(cards.begin(), cards.end(),
-                    [&](const Card& c){ return c.rank() == cards[0].rank(); }),
-                "Initial attack must include cards of the same rank");
-    } else {
-        // Follow-up attack
-        for (const auto& card : cards) {
-            bool isOneOfDefended = std::any_of(defended_.begin(), defended_.end(),
-                [&](const CardPair& p) {
-                    return p.attacking.rank() == card.rank()
-                        || p.defending.rank() == card.rank();
-                });
-            bool isOnOfUndefended = std::any_of(undefended_.begin(), undefended_.end(),
-                [&](const Card& c) { return c.rank() == card.rank(); });
-
-            REQUIRE(isOneOfDefended || isOnOfUndefended,
-                    "Attacking with a rank not seen before: " << card);
-        }
+        REQUIRE(cardIdx > -1, "Empty initial attack");
+        return;
+    } else if (cardIdx == -1) {
+        return;
     }
 
-    DEBUG() << "Attacking with: " << join(cards);
-    printTable();
-    DEBUG() << "Defender hand: " << join(defender().hand());
+    const auto& card = curAttacker().hand()[cardIdx];
 
-    REQUIRE(cards.size() + undefended_.size() <= defender().numCards(),
+    bool isOneOfDefended = std::any_of(defended_.begin(), defended_.end(),
+        [&](const CardPair& p) {
+            return p.attacking.rank() == card.rank()
+                || p.defending.rank() == card.rank();
+            });
+    bool isOnOfUndefended = std::any_of(undefended_.begin(), undefended_.end(),
+        [&](const Card& c) { return c.rank() == card.rank(); });
+
+    REQUIRE(isOneOfDefended || isOnOfUndefended,
+            "Attacking with a rank not seen before: " << card);
+
+    REQUIRE(undefended_.size() + 1 <= defender().numCards(),
             "Attacking with more cards than defender has");
-    REQUIRE(cards.size() + undefended_.size() + defended_.size() <= NUM_INITIAL_CARDS,
+    REQUIRE(undefended_.size() + defended_.size() + 1 <= NUM_INITIAL_CARDS,
             "Attacking with more than maximum allowed cards");
 }
 
-void Game::validateDefense(const Cards& cards, size_t initialNumCards) const
+void Game::validateDefense(int cardIdx) const
 {
-    if (cards.empty())
+    if (cardIdx == -1) {
         return;
-
-    REQUIRE(std::all_of(cards.begin(), cards.end(),
-                [&](const Card& c){ return c.deckId() == deck_.deckId(); }),
-            "Card from a wrong deck");
-    REQUIRE(defender().numCards() == initialNumCards - cards.size(),
-            "Wrong number of cards in defender's hand");
-
-    REQUIRE(cards.size() == undefended_.size(),
-            "Don't have enough cards to defend");
-
-    // Check that defender is greater than attacker
-    for (size_t i = 0; i < cards.size(); ++i) {
-        const auto& attacker = undefended_[i];
-        const auto& defender = cards[i];
-        if (attacker.suit() == defender.suit()) {
-            REQUIRE(attacker.rank() < defender.rank(),
-                    "Invalid defense of " << attacker << " by " << defender);
-        } else {
-            REQUIRE(defender.suit() == trumpSuit_,
-                    "Invalid defense of " << attacker << " by " << defender);
-        }
     }
+
+    REQUIRE(cardIdx < (int)defender().numCards(),
+            "Invalid defending card index: " << cardIdx);
+
+    const auto& card = defender().hand()[cardIdx];
+    const auto& attacker = undefended_.front();
+    REQUIRE((attacker.suit() == card.suit() && attacker.rank() < card.rank()) ||
+            (attacker.suit() != card.suit() && card.suit() == trumpSuit_),
+            "Invalid defense of " << attacker << " by " << card);
 }
 
 size_t Game::nextPlayerIdx(size_t playerIdx) const

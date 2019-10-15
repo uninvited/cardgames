@@ -28,11 +28,15 @@ public:
     void addToHand(Cards&& cards);
     void addToHand(CardPairs&& pairs);
 
+    Card playCard(size_t cardIdx);
+
     Cards discardHand();
 
-    Cards attack(const GameState& state);
+    // Return index of card in hand, or -1 on fold
+    int attack(const GameState& state);
 
-    Cards defend(const GameState& state);
+    // Return index of card in hand, or -1 on resign
+    int defend(const GameState& state);
 
 private:
     PlayerId name_;

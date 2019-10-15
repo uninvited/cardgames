@@ -14,106 +14,74 @@ RandomStrategy::RandomStrategy()
 {
 }
 
-Cards RandomStrategy::attack(const GameState& state, Cards& hand)
+int RandomStrategy::attack(const GameState& state, const Cards& hand)
 {
-    Cards result;
     if (hand.empty()) {
-        return result;
+        return -1;
     }
 
     if (state.defendedCards().empty() && state.undefendedCards().empty()) {
         // Initial attack
-        size_t pos = randGenerator_() % hand.size();
-        auto iter = hand.begin() + pos;
-
-        result.push_back(std::move(*iter));
-        hand.erase(iter);
-        return result;
+        return randGenerator_() % hand.size();
     } else {
         // Follow-up attack
+
+        // Safety check
         if (state.defendedCards().size() + state.undefendedCards().size() >= MAX_ATTACK_SIZE
                 || state.undefendedCards().size() >= state.opponents()[state.defenderIdx()].numCards) {
-            return result;
+            return -1;
         }
 
-        for (auto iter = hand.begin(); iter != hand.end(); ++iter) {
+        // Use -1(=fold) as one of random options
+        std::vector<int> candidates{-1};
+        for (size_t i = 0; i < hand.size(); ++i) {
             if (std::any_of(state.defendedCards().begin(),
                             state.defendedCards().end(),
                             [&](const CardPair& pair){
-                                return pair.attacking.rank() == iter->rank()
-                                    || pair.defending.rank() == iter->rank();
+                                return pair.attacking.rank() == hand[i].rank()
+                                    || pair.defending.rank() == hand[i].rank();
                             }))
             {
-                result.push_back(std::move(*iter));
-                hand.erase(iter);
-                return result;
+                candidates.push_back(i);
             }
 
             if (std::any_of(state.undefendedCards().begin(),
                             state.undefendedCards().end(),
-                            [&](const Card& card){
-                                return card.rank() == iter->rank()
-                                    || card.rank() == iter->rank();
+                            [&](const Card& c){
+                                return c.rank() == hand[i].rank()
+                                    || c.rank() == hand[i].rank();
                             }))
             {
-                result.push_back(std::move(*iter));
-                hand.erase(iter);
-                return result;
+                candidates.push_back(i);
             }
         }
-        return Cards{};
+        size_t index = randGenerator_() % candidates.size();
+        return candidates[index];
     }
 }
 
-Cards RandomStrategy::defend(const GameState& state, Cards& hand)
+int RandomStrategy::defend(const GameState& state, const Cards& hand)
 {
-    Cards result;
-
     if (hand.empty()) {
-        return result;
+        return -1;
     }
 
-    std::vector<bool> used(hand.size(), false);
+    const auto& attacker = state.undefendedCards().front();
 
-    for (const auto& attacking : state.undefendedCards()) {
-        auto id = getDefenderIdx(attacking, hand, used, state.trumpSuit());
-        if (id == -1) {
-            return result;
-        } else {
-            used[id] = true;
-        }
-    }
+    // Use -1(=resign) as one of random options
+    std::vector<int> candidates{-1};
 
-    Cards remainingHand;
-    // TODO: partition?
     for (size_t i = 0; i < hand.size(); ++i) {
-        if (used[i]) {
-            result.push_back(std::move(hand[i]));
-        } else {
-            remainingHand.push_back(std::move(hand[i]));
+        const auto& card = hand[i];
+        if (card.suit() == attacker.suit() && card.rank() > attacker.rank()) {
+            candidates.push_back(i);
+        }
+        if (card.suit() != attacker.suit() && card.suit() == state.trumpSuit()) {
+            candidates.push_back(i);
         }
     }
-    hand = std::move(remainingHand);
-    return result;
-}
-
-int RandomStrategy::getDefenderIdx(const Card& attacker,
-                                   const Cards& hand,
-                                   const std::vector<bool>& used,
-                                   Suit trumpSuit) const
-{
-    for (size_t i = 0; i < hand.size(); ++i) {
-        if (used[i]) continue;
-
-        const auto& defender = hand[i];
-        if (defender.suit() == attacker.suit() && defender.rank() > attacker.rank()) {
-            return i;
-        }
-        if (defender.suit() != attacker.suit() && defender.suit() == trumpSuit) {
-            return i;
-        }
-    }
-    return -1;
+    size_t index = randGenerator_() % candidates.size();
+    return candidates[index];
 }
 
 } // namespace miplot::cardgame::durak

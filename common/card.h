@@ -6,8 +6,6 @@
 
 namespace miplot::cards {
 
-using DeckId = uint64_t;
-
 template <typename CardTraits>
 class Deck;
 
@@ -23,7 +21,6 @@ public:
     Card(Suit suit, Rank rank)
         : suit_(suit)
         , rank_(rank)
-        , deckId_(0)
     {}
 
     Card(Card&&) = default;
@@ -31,20 +28,12 @@ public:
 
     Suit suit() const { return suit_; }
     Rank rank() const { return rank_; }
-    DeckId deckId() const { return deckId_; }
 
 private:
     template<typename T> friend class Deck;
 
-    Card(Suit suit, Rank rank, DeckId deckId)
-        : suit_(suit)
-        , rank_(rank)
-        , deckId_(deckId)
-    {}
-
     Suit suit_;
     Rank rank_;
-    DeckId deckId_;
 };
 
 

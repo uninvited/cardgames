@@ -15,22 +15,17 @@ public:
 
     /**
      * @param state game state
-     * @param hand player's hand. It must be updated accordingly, i.e.
-     *             attacking cards must be removed from the hand
-     *             by the moment the function returns
-     * @return cards to attack with
+     * @param hand player's hand.
+     * @return index of card in hand to attack with. -1 if folds
      */
-    virtual Cards attack(const GameState& state, Cards& hand) = 0;
+    virtual int attack(const GameState& state, const Cards& hand) = 0;
 
     /**
      * @param state game state
-     * @param hand player's hand. It must be updated accordingly, i.e.
-     *             defending cards must be removed from the hand
-     *             by the moment the function returns
-     * @return cards to defend, their order must correspond to the order
-     *         of state.undefendedCards()
+     * @param hand player's hand.
+     * @return index of card in hand to defend with. -1 if resigns
      */
-    virtual Cards defend(const GameState& state, Cards& hand) = 0;
+    virtual int defend(const GameState& state, const Cards& hand) = 0;
 };
 
 
@@ -38,16 +33,11 @@ class RandomStrategy : public Strategy {
 public:
     RandomStrategy();
 
-    Cards attack(const GameState& state, Cards& hand) override;
+    int attack(const GameState& state, const Cards& hand) override;
 
-    Cards defend(const GameState& state, Cards& hand) override;
+    int defend(const GameState& state, const Cards& hand) override;
+
 private:
-    // -1 if can't defend
-    int getDefenderIdx(const Card& attacker,
-                       const Cards& hand,
-                       const std::vector<bool>& used,
-                       Suit trump) const;
-
     std::mt19937 randGenerator_;
 };
 

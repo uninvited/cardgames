@@ -2,7 +2,6 @@
 
 #include "card.h"
 #include "enum_iterator.h"
-#include "id_generator.h"
 #include "../exception.h"
 
 #include <deque>
@@ -12,12 +11,6 @@
 #include <vector>
 
 namespace miplot::cards {
-
-inline auto& deckIdGenerator()
-{
-    static IdGenerator<DeckId> generator_{0};
-    return generator_;
-}
 
 template <typename CardTraits>
 class Deck {
@@ -33,19 +26,14 @@ public:
 
     // Creates an empty deck
     Deck()
-        : deckId_(deckIdGenerator().nextId())
-        , randGenerator_(std::random_device{}())
+        : randGenerator_(std::random_device{}())
     {
     }
 
     Deck(std::vector<CardType>&& cards)
-        : deckId_(deckIdGenerator().nextId())
-        , randGenerator_(std::random_device{}())
+        : randGenerator_(std::random_device{}())
     {
         std::move(cards.begin(), cards.end(), std::back_inserter(cards_));
-        for (auto& card : cards_) {
-            card.deckId_ = deckId_;
-        }
     }
 
     // Creates standard deck with each card taken once
@@ -54,13 +42,11 @@ public:
 
         for (auto suit : SuitIterator()) {
             for (auto rank : RankIterator()) {
-                deck.cards_.push_back(CardType(suit, rank, deck.deckId()));
+                deck.cards_.push_back(CardType(suit, rank));
             }
         }
         return deck;
     }
-
-    DeckId deckId() const { return deckId_; }
 
     const ContainerType& cards() const { return cards_; }
 
@@ -68,32 +54,26 @@ public:
 
     bool isEmpty() const { return cards_.empty(); }
 
-    CardType getOneFromTop()
+    const CardType& top() const
     {
         REQUIRE(!isEmpty(), "Not enough cards");
-        CardType result = std::move(cards_.back());
-        cards_.pop_back();
-        return result;
-    }
-    std::vector<CardType> getFromTop(size_t count)
-    {
-        REQUIRE(count <= size(), "Not enough cards");
-        std::vector<CardType> result;
-        auto from = cards_.end() - count;
-        std::move(from, cards_.end(), std::back_inserter(result));
-        cards_.erase(from, cards_.end());
-        return result;
+        return cards_.front();
     }
 
-    CardType getOneFromBottom()
+    const CardType& bottom() const
+    {
+        REQUIRE(!isEmpty(), "Not enough cards");
+        return cards_.back();
+    }
+
+    CardType getOneFromTop()
     {
         REQUIRE(!isEmpty(), "Not enough cards");
         CardType result = std::move(cards_.front());
         cards_.pop_front();
         return result;
     }
-
-    std::vector<CardType> getFromBottom(size_t count)
+    std::vector<CardType> getFromTop(size_t count)
     {
         REQUIRE(count <= size(), "Not enough cards");
         std::vector<CardType> result(count);
@@ -103,26 +83,44 @@ public:
         return result;
     }
 
+    CardType getOneFromBottom()
+    {
+        REQUIRE(!isEmpty(), "Not enough cards");
+        CardType result = std::move(cards_.back());
+        cards_.pop_back();
+        return result;
+    }
+
+    std::vector<CardType> getFromBottom(size_t count)
+    {
+        REQUIRE(count <= size(), "Not enough cards");
+        std::vector<CardType> result;
+        auto from = cards_.end() - count;
+        std::move(from, cards_.end(), std::back_inserter(result));
+        cards_.erase(from, cards_.end());
+        return result;
+    }
+
     void putOnTop(CardType card)
-    {
-        cards_.push_back(std::move(card));
-    }
-
-    template<typename T>
-    void putOnTop(T cards)
-    {
-        std::move(cards.begin(), cards.end(), std::back_inserter(cards_));
-    }
-
-    void putOnBottom(CardType card)
     {
         cards_.push_front(std::move(card));
     }
 
-    template<typename T>
-    void putOnBottom(T cards)
+    template<typename Collection>
+    void putOnTop(Collection cards)
     {
         std::move(cards.begin(), cards.end(), std::front_inserter(cards_));
+    }
+
+    void putOnBottom(CardType card)
+    {
+        cards_.push_back(std::move(card));
+    }
+
+    template<typename Collection>
+    void putOnBottom(Collection cards)
+    {
+        std::move(cards.begin(), cards.end(), std::back_inserter(cards_));
     }
 
     void shuffle()
@@ -132,7 +130,6 @@ public:
 
 private:
     ContainerType cards_;
-    DeckId deckId_;
     std::mt19937 randGenerator_;
 };
 
