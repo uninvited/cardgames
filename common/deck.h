@@ -2,7 +2,7 @@
 
 #include "card.h"
 #include "enum_iterator.h"
-#include "../exception.h"
+#include "exception.h"
 
 #include <deque>
 #include <ostream>
