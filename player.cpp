@@ -70,5 +70,10 @@ int Player::defend(const GameState& state)
     return strategy_->defend(state, hand_);
 }
 
+const std::string& Player::strategyName() const
+{
+    return strategy_->name();
+}
+
 } // namespace miplot::cardgame::durak
 

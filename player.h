@@ -19,6 +19,7 @@ public:
     Player(PlayerId name, std::unique_ptr<Strategy>&& strategy);
 
     const PlayerId name() const;
+    const std::string& strategyName() const;
 
     const Cards& hand() const;
 

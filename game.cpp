@@ -85,9 +85,8 @@ Game::Game(std::vector<Player>&& players)
 RoundResult Game::playRound(size_t firstAttackerIdx)
 {
     deal(firstAttackerIdx);
-    INFO() << "Playing a round";
     printDeck();
-    INFO() << "trump suit: " << trumpSuit_;
+    INFO() << "Playing a round, trump suit: " << trumpSuit_;
 
     BoutResult boutResult;
 

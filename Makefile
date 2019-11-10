@@ -5,9 +5,11 @@ OBJ = main.o \
       game.o \
       player.o \
       serialize.o \
-      strategy.o \
       common/card_traits.o \
       logging/logging.o \
+      strategy/random_strategy.o \
+      strategy/min_card_strategy.o \
+      strategy/helper.o \
 
 %.o: %.cpp
 	$(CC-COMMAND)

@@ -1,4 +1,5 @@
 #include "strategy.h"
+#include "helper.h"
 #include "game.h"
 #include "logging/logging.h"
 
@@ -6,8 +7,6 @@
 #include <random>
 
 namespace miplot::cardgame::durak {
-
-constexpr size_t MAX_ATTACK_SIZE = 6;
 
 RandomStrategy::RandomStrategy()
     : randGenerator_(std::random_device{}())
@@ -73,10 +72,7 @@ int RandomStrategy::defend(const GameState& state, const Cards& hand)
 
     for (size_t i = 0; i < hand.size(); ++i) {
         const auto& card = hand[i];
-        if (card.suit() == attacker.suit() && card.rank() > attacker.rank()) {
-            candidates.push_back(i);
-        }
-        if (card.suit() != attacker.suit() && card.suit() == state.trumpSuit()) {
+        if (canDefend(attacker, card, state.trumpSuit())) {
             candidates.push_back(i);
         }
     }
@@ -84,4 +80,11 @@ int RandomStrategy::defend(const GameState& state, const Cards& hand)
     return candidates[index];
 }
 
+const std::string& RandomStrategy::name() const
+{
+    static const std::string NAME = "Random strategy";
+    return NAME;
+}
+
 } // namespace miplot::cardgame::durak
+
